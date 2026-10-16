@@ -60,7 +60,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
   const playerRef = useRef<Player>({
     x: 200,
-    y: 0,
+    y: 350,
     vx: 0,
     vy: 0,
     width: 44,
@@ -123,6 +123,11 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
   // リセット
   const resetGame = useCallback(() => {
+    const canvas = canvasRef.current;
+    const width = canvas ? canvas.clientWidth || 400 : 400;
+    const height = canvas ? canvas.clientHeight || 500 : 500;
+    const floorY = height - 40;
+
     gameStateRef.current = {
       score: 0,
       lives: 3,
@@ -135,12 +140,12 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       nextItemSpawn: 30,
       nextObstacleSpawn: 90,
       idCounter: 0,
-      floorY: 0,
+      floorY: floorY,
     };
 
     playerRef.current = {
-      x: 200,
-      y: 0,
+      x: width / 2,
+      y: floorY,
       vx: 0,
       vy: 0,
       width: 44,
@@ -180,9 +185,10 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       canvas.style.height = `${rect.height}px`;
 
       initClouds(rect.width, rect.height);
-      gameStateRef.current.floorY = rect.height - 50;
-      if (playerRef.current.y === 0) {
-        playerRef.current.y = gameStateRef.current.floorY;
+      const floorY = rect.height - 40;
+      gameStateRef.current.floorY = floorY;
+      if (!isPlaying) {
+        playerRef.current.y = floorY;
         playerRef.current.x = rect.width / 2;
       }
     };
