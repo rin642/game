@@ -1,12 +1,13 @@
 "use client";
 
 import React from "react";
-import { RotateCcw, Home, Star, Heart } from "lucide-react";
+import { RotateCcw, Home, Star, Heart, Clock } from "lucide-react";
 import { soundManager } from "@/lib/audio";
 
 interface GameOverModalProps {
   score: number;
   highScore: number;
+  reason?: "timeup" | "lives";
   stats: {
     stars: number;
     hearts: number;
@@ -19,24 +20,35 @@ interface GameOverModalProps {
 export const GameOverModal: React.FC<GameOverModalProps> = ({
   score,
   highScore,
+  reason = "timeup",
   stats,
   onRetry,
   onHome,
 }) => {
   const isNewHighScore = score >= highScore && score > 0;
+  const isTimeUp = reason === "timeup";
 
   return (
     <div className="absolute inset-0 z-30 flex items-center justify-center p-4 bg-gray-900/25 backdrop-blur-xs">
       <div className="relative max-w-xs sm:max-w-sm w-full bg-white/95 rounded-3xl p-6 shadow-xl border-2 border-pink-100 text-center flex flex-col items-center">
         {/* アイコン */}
-        <div className="text-3xl mb-1">{isNewHighScore ? "👑" : "💤"}</div>
+        <div className="text-3xl mb-1">
+          {isNewHighScore ? "👑" : isTimeUp ? "⏱️" : "💔"}
+        </div>
 
-        <h2 className="text-xl font-bold text-gray-700 mb-1">
-          {isNewHighScore ? "ハイスコア！" : "おつかれさま！"}
+        <h2 className="text-xl font-bold text-gray-700 mb-0.5">
+          {isNewHighScore
+            ? "ハイスコア更新！"
+            : isTimeUp
+            ? "タイムアップ！"
+            : "ゲームオーバー"}
         </h2>
+        <p className="text-xs text-gray-400 font-medium mb-3">
+          {isTimeUp ? "60秒終了！たくさん集めたね！" : "また挑戦してね！"}
+        </p>
 
         {/* スコア */}
-        <div className="my-3 py-2 px-6 bg-pink-50 rounded-2xl border border-pink-100 flex flex-col items-center">
+        <div className="my-2 py-2 px-6 bg-pink-50 rounded-2xl border border-pink-100 flex flex-col items-center">
           <span className="text-[11px] font-bold text-pink-400">SCORE</span>
           <span className="text-3xl font-black text-pink-500 font-sans">
             {score.toLocaleString()}

@@ -20,9 +20,11 @@ interface GameCanvasProps {
     stars: number;
     hearts: number;
     candies: number;
+    reason: "timeup" | "lives";
   }) => void;
   onScoreUpdate: (score: number) => void;
   onLivesUpdate: (lives: number) => void;
+  onTimeUpdate: (timeLeft: number) => void;
   activeControls: {
     left: boolean;
     right: boolean;
@@ -36,6 +38,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   onGameOver,
   onScoreUpdate,
   onLivesUpdate,
+  onTimeUpdate,
   activeControls,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -44,6 +47,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     score: 0,
     lives: 3,
     maxLives: 3,
+    timeLeft: 60,
+    lastTickSecond: 60,
     starsCount: 0,
     heartsCount: 0,
     candiesCount: 0,
@@ -122,6 +127,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       score: 0,
       lives: 3,
       maxLives: 3,
+      timeLeft: 60,
+      lastTickSecond: 60,
       starsCount: 0,
       heartsCount: 0,
       candiesCount: 0,
@@ -153,7 +160,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
     onScoreUpdate(0);
     onLivesUpdate(3);
-  }, [onScoreUpdate, onLivesUpdate]);
+    onTimeUpdate(60);
+  }, [onScoreUpdate, onLivesUpdate, onTimeUpdate]);
 
   // リサイズ処理
   useEffect(() => {
@@ -521,7 +529,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       // 3. 地面（やさしいパステルピンクの床）
       ctx.fillStyle = "#FBCFE8";
       ctx.fillRect(0, floorY, width, height - floorY);
-      // 床のライン
       ctx.strokeStyle = "#F472B6";
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -531,11 +538,36 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
       // ゲームプレイ中の更新処理
       if (isPlaying && !isPaused) {
+        // --- 時間制限カウントダウン ---
+        gs.timeLeft -= 1 / 60;
+        const currentSec = Math.ceil(gs.timeLeft);
+
+        // 残り5秒以下の秒針音
+        if (gs.timeLeft <= 5 && gs.timeLeft > 0 && currentSec !== gs.lastTickSecond) {
+          soundManager?.playTick();
+          gs.lastTickSecond = currentSec;
+        }
+
+        onTimeUpdate(Math.max(0, gs.timeLeft));
+
+        // タイムアップ判定
+        if (gs.timeLeft <= 0) {
+          soundManager?.playTimeUp();
+          onGameOver({
+            score: gs.score,
+            stars: gs.starsCount,
+            hearts: gs.heartsCount,
+            candies: gs.candiesCount,
+            reason: "timeup",
+          });
+          return;
+        }
+
         // 操作判定
         const ctrlLeft = keys.left || activeControls.left;
         const ctrlRight = keys.right || activeControls.right;
 
-        // 左右移動：キビキビして素直（余計な滑りを排除！）
+        // 左右移動：キビキビして素直
         const moveSpeed = 6.2;
         if (ctrlLeft && !ctrlRight) {
           p.vx = -moveSpeed;
@@ -546,7 +578,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           p.facing = "right";
           p.walkCycle += 0.28;
         } else {
-          p.vx = 0; // キーを離したらピタッと止まる！
+          p.vx = 0;
         }
 
         // スマホ用ジャンプボタン判定
@@ -559,7 +591,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
         // 重力適用
         if (!p.isGrounded) {
-          p.vy += 0.62; // すっきりした自然な重力
+          p.vy += 0.62;
           p.squishY += (1 - p.squishY) * 0.12;
         } else {
           p.squishY += (1 - p.squishY) * 0.2;
@@ -572,7 +604,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         // 地面接地判定
         if (p.y >= floorY) {
           if (!p.isGrounded) {
-            // 着地した瞬間、ぽよんと縮む
             p.squishY = 0.8;
           }
           p.y = floorY;
@@ -611,7 +642,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
             x: Math.random() * (width - 60) + 30,
             y: -20,
             type: itemType,
-            speed: Math.random() * 1.4 + 2.2, // 心地よい落下速度
+            speed: Math.random() * 1.4 + 2.2,
             size: 15,
             points,
             rotation: 0,
@@ -644,15 +675,13 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           const item = itemsRef.current[i];
           item.y += item.speed;
           item.wobbleOffset += item.wobbleSpeed;
-          item.x += Math.sin(item.wobbleOffset) * 0.6; // ふわふわ揺れ
+          item.x += Math.sin(item.wobbleOffset) * 0.6;
 
-          // プレイヤーとのキャッチ判定
           const dx = item.x - p.x;
           const dy = item.y - (p.y - 18);
           const dist = Math.hypot(dx, dy);
 
           if (dist < 32) {
-            // キャッチ！
             gs.score += item.points;
             onScoreUpdate(gs.score);
 
@@ -681,7 +710,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
             continue;
           }
 
-          // 地面通過で消去
           if (item.y > floorY + 20) {
             itemsRef.current.splice(i, 1);
           }
@@ -710,6 +738,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
                   stars: gs.starsCount,
                   hearts: gs.heartsCount,
                   candies: gs.candiesCount,
+                  reason: "lives",
                 });
                 return;
               }
@@ -747,22 +776,18 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       }
 
       // --- 描画 ---
-      // 1. アイテム
       itemsRef.current.forEach((it) => {
         if (it.type === "star") drawStar(ctx, it.x, it.y, it.size);
         else if (it.type === "heart") drawHeart(ctx, it.x, it.y, it.size);
         else drawCandy(ctx, it.x, it.y, it.size);
       });
 
-      // 2. 障害物
       obstaclesRef.current.forEach((ob) => {
         drawObstacle(ctx, ob.x, ob.y, ob.size);
       });
 
-      // 3. プレイヤー（うさちゃん）
       drawBunny(ctx, p);
 
-      // 4. パーティクル
       particlesRef.current.forEach((pt) => {
         ctx.save();
         ctx.globalAlpha = Math.max(0, pt.alpha);
@@ -773,7 +798,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         ctx.restore();
       });
 
-      // 5. テキスト
       floatingTextsRef.current.forEach((ft) => {
         ctx.save();
         ctx.globalAlpha = Math.max(0, ft.alpha);
@@ -802,6 +826,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     onGameOver,
     onScoreUpdate,
     onLivesUpdate,
+    onTimeUpdate,
     spawnCollectParticles,
     spawnFloatingText,
   ]);

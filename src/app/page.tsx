@@ -18,6 +18,7 @@ export default function Home() {
 
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(60);
   const [lives, setLives] = useState(3);
   const maxLives = 3;
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -27,6 +28,7 @@ export default function Home() {
     hearts: 0,
     candies: 0,
   });
+  const [gameOverReason, setGameOverReason] = useState<"timeup" | "lives">("timeup");
 
   const [activeControls, setActiveControls] = useState({
     left: false,
@@ -52,6 +54,7 @@ export default function Home() {
     setIsPaused(false);
     setScore(0);
     setLives(3);
+    setTimeLeft(60);
     setIsPlaying(true);
 
     if (soundEnabled) {
@@ -59,18 +62,24 @@ export default function Home() {
     }
   }, [soundEnabled]);
 
-  // ゲームオーバー
+  // ゲームオーバー / タイムアップ
   const handleGameOver = useCallback(
     (stats: {
       score: number;
       stars: number;
       hearts: number;
       candies: number;
+      reason: "timeup" | "lives";
     }) => {
       soundManager?.stopBgm();
       setIsPlaying(false);
       setIsGameOver(true);
-      setLastStats(stats);
+      setGameOverReason(stats.reason);
+      setLastStats({
+        stars: stats.stars,
+        hearts: stats.hearts,
+        candies: stats.candies,
+      });
 
       if (stats.score > highScore) {
         setHighScore(stats.score);
@@ -123,12 +132,13 @@ export default function Home() {
 
   return (
     <main className="relative flex flex-col items-center justify-center w-full min-h-screen p-3 sm:p-6 bg-pink-50/60 select-none overflow-hidden">
-      {/* ゲーム画面のコンテナ（すっきりシンプル＆角丸パステル） */}
+      {/* ゲーム画面のコンテナ */}
       <div className="relative w-full max-w-2xl h-[85vh] max-h-[700px] bg-white rounded-3xl shadow-sm border border-pink-100 overflow-hidden flex flex-col">
         {/* HUDヘッダー */}
         {isPlaying && (
           <GameHeader
             score={score}
+            timeLeft={timeLeft}
             lives={lives}
             maxLives={maxLives}
             soundEnabled={soundEnabled}
@@ -146,6 +156,7 @@ export default function Home() {
             onGameOver={handleGameOver}
             onScoreUpdate={setScore}
             onLivesUpdate={setLives}
+            onTimeUpdate={setTimeLeft}
             activeControls={activeControls}
           />
 
@@ -191,6 +202,7 @@ export default function Home() {
             <GameOverModal
               score={score}
               highScore={highScore}
+              reason={gameOverReason}
               stats={lastStats}
               onRetry={handleStartGame}
               onHome={handleHome}

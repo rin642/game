@@ -54,8 +54,8 @@ export const HowToPlayModal: React.FC<HowToPlayModalProps> = ({ onClose }) => {
             </div>
           </div>
 
-          <div className="p-2 bg-gray-50 rounded-xl border border-gray-100 text-[11px] text-gray-500">
-            たまに落ちてくる暗い<span className="text-gray-700 font-bold">⚡雨雲</span>をよけながら、アイテムをたくさん集めてね！
+          <div className="p-2 bg-pink-50/70 rounded-xl border border-pink-100 text-[11px] text-pink-700">
+            ⏱️ <span className="font-bold">制限時間は60秒！</span> たまに落ちてくる暗い<span className="font-bold text-gray-700">⚡雨雲</span>をよけながら、時間内にハイスコアを目指そう！
           </div>
         </div>
 

@@ -47,9 +47,12 @@ export const StartModal: React.FC<StartModalProps> = ({
         <h1 className="text-2xl sm:text-3xl font-black text-pink-500 mb-1 tracking-tight">
           ドリームキャッチ ✨
         </h1>
-        <p className="text-xs text-gray-400 font-bold mb-4">
-          お星さまとハートをあつめよう
+        <p className="text-xs text-gray-400 font-bold mb-3">
+          お星さまとハートをあつめよう！
         </p>
+        <div className="mb-4 inline-flex items-center gap-1 text-[11px] font-bold text-sky-600 bg-sky-50 px-3 py-1 rounded-full border border-sky-100">
+          <span>⏱️ 制限時間: 60秒</span>
+        </div>
 
         {/* ハイスコア */}
         {highScore > 0 && (
